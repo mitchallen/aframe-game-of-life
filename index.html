@@ -7,35 +7,70 @@
 
         AFRAME.registerComponent('game-of-life', {
 
+            schema: {
+                interval: { type: 'number', default: 5000 }
+            },
+
             init: function () {
+
+                this.elapsedTime = 0;
+
+                this.stepSeconds = 1;
+                this.degreesPerSecond = 45;
 
                 let start = undefined;  // TODO - get from attributes
                 let aliveChance = 0.2;
 
-                const cols = { low: -4, high: 4 };
-                const rows = { low: -4, high: 4 };
+                this.cols = { low: -4, high: 4 };
+                this.rows = { low: -4, high: 4 };
 
-                let x = cols.high - cols.low;
-                let y = rows.high - rows.low;
+                let x = this.cols.high - this.cols.low;
+                let y = this.rows.high - this.rows.low;
 
-                let grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
+                this.grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
 
+                this.draw()
+            },
+            tick: function (time, timeDelta) {
+                var rotation = this.el.getAttribute('rotation');
+                rotation.y += this.degreesPerSecond * (timeDelta / 1000);
+                this.el.setAttribute('rotation', rotation);
+
+                this.elapsedTime += timeDelta;
+                if (this.elapsedTime >= this.data.interval) {
+                    this.step();
+                    this.elapsedTime -= this.data.interval; // reset the timer
+                }
+            },
+            draw: function () {
                 var el = this.el;
 
                 let z = 0;
 
-                for (let c = cols.low, ix = 0; c < cols.high; c++, ix++) {
-                    for (let r = rows.low, iy = 0; r < rows.high; r++, iy++) {
-                        if (grid[ix][iy]) {
+                while (el.firstChild) {
+                    // remove previous children
+                    el.removeChild(el.firstChild);
+                }           
+
+                for (let c = this.cols.low, ix = 0; c < this.cols.high; c++, ix++) {
+                    for (let r = this.rows.low, iy = 0; r < this.rows.high; r++, iy++) {
+                        if (this.grid[ix][iy]) {
                             const obj = document.createElement("a-entity");
                             obj.setAttribute('mixin', 'tile');
                             obj.setAttribute("position", `${c} ${r} ${z}`);
                             obj.setAttribute('material', 'color', '#39ff14')
                             el.appendChild(obj);
                         }
-
                     }
                 }
+            },
+            step: function () {
+                for (let c = this.cols.low, ix = 0; c < this.cols.high; c++, ix++) {
+                    for (let r = this.rows.low, iy = 0; r < this.rows.high; r++, iy++) {
+                        this.grid[ix][iy] = !this.grid[ix][iy]
+                    }
+                }
+                this.draw();
             }
         });
 
