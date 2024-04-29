@@ -8,7 +8,8 @@
         AFRAME.registerComponent('game-of-life', {
 
             schema: {
-                interval: { type: 'number', default: 5000 }
+                interval: { type: 'number', default: 100 },
+                grid: { type: 'array', default: [] }
             },
 
             init: function () {
@@ -19,15 +20,15 @@
                 this.degreesPerSecond = 45;
 
                 let start = undefined;  // TODO - get from attributes
-                let aliveChance = 0.2;
+                let aliveChance = 0.3;
 
-                this.cols = { low: -4, high: 4 };
-                this.rows = { low: -4, high: 4 };
+                this.cols = { low: -21, high: 21 };
+                this.rows = { low: -21, high: 21 };
 
                 let x = this.cols.high - this.cols.low;
                 let y = this.rows.high - this.rows.low;
 
-                this.grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
+                this.data.grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
 
                 this.draw()
             },
@@ -38,8 +39,9 @@
 
                 this.elapsedTime += timeDelta;
                 if (this.elapsedTime >= this.data.interval) {
-                    this.step();
+                    this.data.grid = [...this.step(this.data.grid)];
                     this.elapsedTime -= this.data.interval; // reset the timer
+                    this.draw()
                 }
             },
             draw: function () {
@@ -50,11 +52,11 @@
                 while (el.firstChild) {
                     // remove previous children
                     el.removeChild(el.firstChild);
-                }           
+                }
 
                 for (let c = this.cols.low, ix = 0; c < this.cols.high; c++, ix++) {
                     for (let r = this.rows.low, iy = 0; r < this.rows.high; r++, iy++) {
-                        if (this.grid[ix][iy]) {
+                        if (this.data.grid[ix][iy]) {
                             const obj = document.createElement("a-entity");
                             obj.setAttribute('mixin', 'tile');
                             obj.setAttribute("position", `${c} ${r} ${z}`);
@@ -64,13 +66,57 @@
                     }
                 }
             },
-            step: function () {
-                for (let c = this.cols.low, ix = 0; c < this.cols.high; c++, ix++) {
-                    for (let r = this.rows.low, iy = 0; r < this.rows.high; r++, iy++) {
-                        this.grid[ix][iy] = !this.grid[ix][iy]
+            step: function (grid) {
+
+                const cols = this.data.grid.length;
+                const rows = this.data.grid[0].length;
+
+                function countNeighbors(i, j) {
+         
+                    let count = 0;
+
+                    for (let x = -1; x <= 1; x++) {
+                        for (let y = -1; y <= 1; y++) {
+                            const row = i + x;
+                            const col = j + y;
+
+                            if (
+                                (x === 0 && y === 0) || // skip the current cell
+                                row < 0 || row >= rows || // out of bounds
+                                col < 0 || col >= cols
+                            ) {
+                                continue;
+                            }
+
+                            if (grid[col][row] === 1) {
+                                count++;
+                            }
+                        }
+                    }
+
+                    return count;
+                }
+
+                const newGrid = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+                for (let i = 0; i < cols; i++) {
+                    for (let j = 0; j < rows; j++) {
+                        const cell = grid[i][j];
+                        const neighbors = countNeighbors( i, j);
+
+                        if (cell === 1 && (neighbors < 2 || neighbors > 3)) {
+                            newGrid[i][j] = 0; // underpopulation or overpopulation
+                        } else if (cell === 0 && neighbors === 3) {
+                            newGrid[i][j] = 1; // reproduction
+                        } else {
+                            newGrid[i][j] = cell; // no change
+                        }
                     }
                 }
+
                 this.draw();
+
+                return newGrid;
             }
         });
 
@@ -87,7 +133,7 @@
             <a-mixin id="shrinker"
                 animation__shrinker="property: scale; from:1 1 1; to:0 0 0; dur:5000; loop:false; easing:linear;"></a-mixin>
         </a-assets>
-        <a-entity id="rig" position="0 1.6 3">
+        <a-entity id="rig" position="0 1.6 5">
             <a-entity id="camera" camera look-controls>
                 <!-- <a-cursor></a-cursor> -->
             </a-entity>
