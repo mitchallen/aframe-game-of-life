@@ -20,10 +20,10 @@
                 this.degreesPerSecond = 45;
 
                 let start = undefined;  // TODO - get from attributes
-                let aliveChance = 0.3;
+                let aliveChance = 0.2;
 
-                this.cols = { low: -21, high: 21 };
-                this.rows = { low: -21, high: 21 };
+                this.cols = { low: -11, high: 11 };
+                this.rows = { low: -11, high: 11 };
 
                 let x = this.cols.high - this.cols.low;
                 let y = this.rows.high - this.rows.low;
@@ -68,8 +68,8 @@
             },
             step: function (grid) {
 
-                const cols = this.data.grid.length;
-                const rows = this.data.grid[0].length;
+                const cols = grid.length;
+                const rows = grid[0].length;
 
                 function countNeighbors(i, j) {
          
