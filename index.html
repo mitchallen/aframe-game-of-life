@@ -9,7 +9,8 @@
 
             schema: {
                 interval: { type: 'number', default: 100 },
-                grid: { type: 'array', default: [] }
+                grid: { type: 'array', default: [] },
+                glider: { type: 'boolean', default: false }
             },
 
             init: function () {
@@ -22,13 +23,35 @@
                 let start = undefined;  // TODO - get from attributes
                 let aliveChance = 0.2;
 
-                this.cols = { low: -11, high: 11 };
-                this.rows = { low: -11, high: 11 };
+                this.cols = { low: -11, high: 12 };
+                this.rows = { low: -11, high: 12 };
 
                 let x = this.cols.high - this.cols.low;
                 let y = this.rows.high - this.rows.low;
 
-                this.data.grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
+                if (this.data.glider) {
+                    this.data.grid = Array.from({ length: x }, () => Array(y).fill(0));
+
+                    // Initialize a glider pattern
+                    const glider = [
+                        [0, 1, 0],
+                        [0, 0, 1],
+                        [1, 1, 1]
+                    ];
+
+                    const offsetX = (x - glider.length) / 2;
+                    const offsetY = (y - glider[0].length) / 2;
+
+                    for (let i = 0; i < glider.length; i++) {
+                        for (let j = 0; j < glider[i].length; j++) {
+                            this.data.grid[offsetX + i][offsetY + j] = glider[i][j];
+                        }
+                    }
+                } else {
+                    this.data.grid = start ? start : Array.from(Array(x), () => [...Array(y)].map(() => Math.random() < aliveChance ? 1 : 0));
+
+                }
+
 
                 this.draw()
             },
@@ -72,20 +95,18 @@
                 const rows = grid[0].length;
 
                 function countNeighbors(i, j) {
-         
+
                     let count = 0;
 
                     for (let x = -1; x <= 1; x++) {
                         for (let y = -1; y <= 1; y++) {
-                            const row = i + x;
-                            const col = j + y;
 
-                            if (
-                                (x === 0 && y === 0) || // skip the current cell
-                                row < 0 || row >= rows || // out of bounds
-                                col < 0 || col >= cols
-                            ) {
-                                continue;
+                            const col = (i + y + cols) % cols; // wrap around cols
+                            const row = (j + x + rows) % rows; // wrap around rows
+
+
+                            if (x === 0 && y === 0) {
+                                continue; // skip the current cell
                             }
 
                             if (grid[col][row] === 1) {
@@ -102,7 +123,7 @@
                 for (let i = 0; i < cols; i++) {
                     for (let j = 0; j < rows; j++) {
                         const cell = grid[i][j];
-                        const neighbors = countNeighbors( i, j);
+                        const neighbors = countNeighbors(i, j);
 
                         if (cell === 1 && (neighbors < 2 || neighbors > 3)) {
                             newGrid[i][j] = 0; // underpopulation or overpopulation
@@ -133,14 +154,14 @@
             <a-mixin id="shrinker"
                 animation__shrinker="property: scale; from:1 1 1; to:0 0 0; dur:5000; loop:false; easing:linear;"></a-mixin>
         </a-assets>
-        <a-entity id="rig" position="0 1.6 5">
+        <a-entity id="rig" position="0 1.6 10">
             <a-entity id="camera" camera look-controls>
                 <!-- <a-cursor></a-cursor> -->
             </a-entity>
         </a-entity>
-        <a-entity id="game" position="0 1.6 -10" game-of-life></a-entity>
-        <a-entity id="game" position="10 1.6 -10" game-of-life></a-entity>
-        <a-entity id="game" position="-10 1.6 -10" game-of-life></a-entity>
+        <a-entity id="game1" position="0 1.6 -10" game-of-life></a-entity>
+        <a-entity id="game2" position="10 1.6 -10" game-of-life="glider: true;"></a-entity>
+        <a-entity id="game3" position="-10 1.6 -10" game-of-life></a-entity>
         <a-sky color="#333333"></a-sky>
     </a-scene>
 
